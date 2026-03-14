@@ -4,15 +4,23 @@ include("db.php");
 $search = "";
 
 if(isset($_GET['search'])){
-    $search = mysqli_real_escape_string($conn,$_GET['search']);
+$search = mysqli_real_escape_string($conn,$_GET['search']);
 }
 
-$sql = "SELECT * FROM products WHERE name LIKE '%$search%'";
+if($search==""){
+$sql = "SELECT * FROM products";
+}else{
+$sql = "SELECT * FROM products 
+WHERE name LIKE '%$search%' 
+OR category LIKE '%$search%'";
+}
+
 $result = mysqli_query($conn,$sql);
 ?>
 
 <!DOCTYPE html>
 <html>
+
 <head>
 
 <title>Products</title>
@@ -48,7 +56,7 @@ object-fit:cover;
 }
 
 button{
-background:#007bff;
+background:#28a745;
 color:white;
 border:none;
 padding:8px 15px;
@@ -57,7 +65,7 @@ cursor:pointer;
 }
 
 button:hover{
-background:#0056b3;
+background:#1e7e34;
 }
 
 </style>
@@ -85,17 +93,11 @@ while($row = mysqli_fetch_assoc($result)){
 
 <p>Price: ₹<?php echo $row['price']; ?></p>
 
-<form method="POST" action="add_to_cart.php">
+<form method="POST" action="cart.php">
 
-<input type="hidden" name="product" value="<?php echo $row['name']; ?>">
+<input type="hidden" name="product_id" value="<?php echo $row['id']; ?>">
 
-<input type="hidden" name="price" value="<?php echo $row['price']; ?>">
-<!-- 
-<input type="number" name="qty" value="1" min="1" style="width:50px;"> -->
-
-
-
-<button type="submit">Add To Cart</button>
+<button type="submit" name="add_to_cart">Add to Cart</button>
 
 </form>
 
@@ -106,9 +108,10 @@ while($row = mysqli_fetch_assoc($result)){
 
 }else{
 
-echo "<h2 style='text-align:center'>No Product Found</h2>";
+echo "<h2>No Product Found</h2>";
 
 }
+
 ?>
 
 </div>

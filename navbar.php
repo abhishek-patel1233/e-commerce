@@ -1,5 +1,17 @@
+
 <?php
-// navbar.php
+if(session_status() == PHP_SESSION_NONE){
+    session_start();
+}
+
+$cart_count = 0;
+
+if(isset($_SESSION['cart'])){
+    foreach($_SESSION['cart'] as $item){
+        $cart_count += $item['quantity'];
+    }
+}
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -64,11 +76,15 @@ body {
 .menu {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 20px;
+    margin: auto;
+
 }
 
 .menu a{color:black;text-decoration:none;margin:10px;font-size:18px;
- font-weight: bold;}
+ font-weight: bold;display:flex;
+    
+}
 .menu a:hover {
     color: #e53935;
 }
@@ -119,6 +135,16 @@ body {
     cursor: pointer;
 }
 
+.wishlist-link{
+color:red;
+text-decoration:none;
+font-weight:bold;
+}
+
+.wishlist-link i{
+color:red;
+}
+
 /* Mobile dropdown menu */
 .mobile-menu {
     display: none;
@@ -126,6 +152,7 @@ body {
     background-color: #fff;
     width: 100%;
     border-top: 1px solid #ccc;
+     font-weight:bold; text-decoration:none;
 }
 .mobile-menu a {
     padding: 10px 20px;
@@ -171,18 +198,23 @@ body {
 
     <div class="hamburger" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></div>
 
-    <div class="menu">
+    <div class="menu" >
         <a href="#">All Departments</a>
         <a href="items-page.php">Home</a>
-        <a href="#">Laptops & Desktops</a>
-        <a href="#">Gaming Products</a>
-        <a href="#">Specials</a>
-        <a href="#">Customize your PC</a>
-        <a href="wishlist-page.php"> <i class="fas fa-heart"></i> Wishlist (0)</a>
+        <!-- <a href="#">Laptops & Desktops</a>
+        <a href="#">Gaming Products</a> -->
+       <a href="specials.php">Specials</a>
+       <a href="customize-pc.php">Customize your PC</a>
+       <a href="wishlist-page.php" class="wishlist-link">
+<i class="fas fa-heart"></i> Wishlist (0)
+</a>
         <div class="sec-cart">
-            <a href="cart.php"> <i class="fas fa-shopping-cart"></i> 0 item(s) - ₹0.00 </a>
-        </div>
-
+            <!-- <a href="cart.php"> <i class="fas fa-shopping-cart"></i> 0 item(s) - ₹0.00 </a> -->
+             <a href="cart.php" style="font-weight:bold; text-decoration:none;">
+🛒 Cart (<?php echo $cart_count; ?>)
+</a>
+       
+   </div>
         <!-- Account Dropdown -->
         <div class="account-dropdown">
             <a  href="user-dashboard.php" style="font-size:18px;">
@@ -191,10 +223,11 @@ body {
            <div class="dropdown-content">
 
 <?php
+
 if(isset($_SESSION['user_id'])){
 ?>
 
-<a href="#">Welcome <?php echo $_SESSION['user_name']; ?></a>
+<a href="user-dashboard.php">Welcome <?php echo $_SESSION['user_name']; ?></a>
 <a href="logout.php">Logout</a>
 
 <?php
@@ -217,12 +250,23 @@ if(isset($_SESSION['user_id'])){
 <div class="mobile-menu" id="mobileMenu">
     <a href="#">All Departments</a>
     <a href="items-page.php">Home</a>
-    <a href="#">Laptops & Desktops</a>
-    <a href="#">Gaming Products</a>
+    
     <a href="#">Specials</a>
-    <a href="#">Customize your PC</a>
-    <a href="#">Wishlist (0)</a>
-    <a href="cart.php">0 item(s) - ₹0.00</a>
+    <a href="customize-pc.php">Customize your PC</a>
+      <a href="wishlist-page.php" class="wishlist-link">
+<i class="fas fa-heart"></i> Wishlist (0)
+</a>
+    <!-- <a href="cart.php">0 item(s) - ₹0.00</a> -->
+         <a href="cart.php" style="font-weight:bold; text-decoration:none;">
+🛒 Cart (<?php echo $cart_count; ?>)
+ <
+            <a  href="user-dashboard.php" style="font-size:18px;">
+                <i class="fas fa-user-circle"></i> Account
+            </a>
+        
+
+</a>
+
     <a href="login.php">Login</a>
     <a href="register.php">Register</a>
 
@@ -234,7 +278,7 @@ if(isset($_SESSION['user_id'])){
 if(isset($_SESSION['user_id'])){
 ?>
 
-<a href="#">Welcome <?php echo $_SESSION['user_name']; ?></a>
+<a href="user-dashboard.php">Welcome <?php echo $_SESSION['user_name']; ?></a>
 <a href="logout.php">Logout</a>
 
 <?php

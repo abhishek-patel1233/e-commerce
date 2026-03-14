@@ -5,7 +5,7 @@ include("db.php");
 // Search
 $search = "";
 if(isset($_GET['search'])){
-    $search = mysqli_real_escape_string($conn,$search = $_GET['search']);
+    $search = mysqli_real_escape_string($conn,$_GET['search']);
 }
 
 $sql = "SELECT * FROM products WHERE name LIKE '%$search%'";
@@ -26,7 +26,7 @@ body{
 font-family:Arial;
 margin:0;
 background:#f4f4f4;
-color: black;
+color:black;
 }
 
 .products{
@@ -44,13 +44,19 @@ padding:15px;
 text-align:center;
 border-radius:8px;
 box-shadow:0 0 8px rgba(0,0,0,0.1);
-position:relative;
 }
 
 .product img{
 width:100%;
 height:150px;
 object-fit:cover;
+}
+
+.cart-row{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-top:10px;
 }
 
 .product button{
@@ -62,13 +68,8 @@ cursor:pointer;
 border-radius:5px;
 }
 
-/* wishlist icon */
-
 .wishlist{
-position:absolute;
-top:10px;
-right:10px;
-font-size:20px;
+font-size:22px;
 cursor:pointer;
 }
 
@@ -108,29 +109,39 @@ $color="red";
 
 }
 ?>
-<a href="product_detail.php?id=<?php echo $row['id']; ?>">
+
 <div class="product">
 
+<a href="product_detail.php?id=<?php echo $row['id']; ?>">
 
 <img src="images/<?php echo $row['image']; ?>">
 
-<h3 ><?php echo $row['name']; ?></h3>
+<h3><?php echo $row['name']; ?></h3>
 
 <p>₹<?php echo $row['price']; ?></p>
 
+</a>
+
+<div class="cart-row">
+
 <form method="POST" action="cart.php">
+
 <input type="hidden" name="product_id" value="<?php echo $row['id']; ?>">
+
 <button type="submit" name="add_to_cart">Add to Cart</button>
-
-<a class="wishlist <?php echo $color; ?>" href="add_to_wishlist.php?product_id=<?php echo $row['id']; ?>">
-<i class="fas fa-heart"></i>
-</a> 
-
 
 </form>
 
-</div>
+<a class="wishlist <?php echo $color; ?>" href="add_to_wishlist.php?product_id=<?php echo $row['id']; ?>">
+
+<i class="fas fa-heart"></i>
+
 </a>
+
+</div>
+
+</div>
+
 <?php
 }
 }else{

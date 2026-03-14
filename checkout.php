@@ -1,165 +1,53 @@
 <?php
 session_start();
 include("db.php");
-include("navbar.php");
 
-/* Login check */
 if(!isset($_SESSION['user_id'])){
     header("Location: login.php");
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
-$success = "";
+$cart = $_SESSION['cart'] ?? [];
+$total = 0;
+$cart_count = 0;
 
-/* Place order */
-if(isset($_POST['place_order'])){
-
-    if(!empty($_SESSION['cart'])){
-
-        foreach($_SESSION['cart'] as $item){
-
-            $product_id = $item['id'];
-            $name = $item['name'];
-            $price = $item['price'];
-
-            $sql = "INSERT INTO orders (user_id, product_id, product_name, price, status)
-                    VALUES ('$user_id','$product_id','$name','$price','Pending')";
-
-            mysqli_query($conn,$sql);
-        }
-
-        /* Cart empty after order */
-        unset($_SESSION['cart']);
-
-        $success = "Your order has been placed successfully!";
-    }
+foreach($cart as $item){
+    $total += $item['price'] * $item['quantity'];
+    $cart_count += $item['quantity'];
 }
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>
 <title>Checkout</title>
-
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 <style>
-
-body{
-font-family:Arial;
-background:#f4f4f4;
-}
-
-.container{
-width:70%;
-margin:auto;
-background:white;
-padding:20px;
-margin-top:30px;
-border-radius:5px;
-}
-
-table{
-width:100%;
-border-collapse:collapse;
-}
-
-th,td{
-padding:12px;
-border-bottom:1px solid #ddd;
-text-align:center;
-}
-
-th{
-background:#222;
-color:white;
-}
-
-.total{
-font-size:20px;
-margin-top:20px;
-text-align:right;
-}
-
-button{
-background:green;
-color:white;
-padding:12px 20px;
-border:none;
-font-size:18px;
-cursor:pointer;
-border-radius:5px;
-}
-
-button:hover{
-background:darkgreen;
-}
-
-.success{
-background:#d4edda;
-color:#155724;
-padding:15px;
-margin-bottom:15px;
-text-align:center;
-border-radius:4px;
-}
-
+.checkout-container { max-width: 800px; margin:50px auto; background:#fff; padding:30px; border-radius:10px; }
+.item { display:flex; align-items:center; gap:20px; border-bottom:1px solid #ddd; padding:15px 0; }
+.item img { width:80px; height:80px; object-fit:cover; border-radius:5px; }
+.total { text-align:right; font-size:1.5rem; font-weight:bold; margin-top:20px; }
+.btn-continue { display:block; margin-left:auto; background:green; color:white; padding:10px 25px; border-radius:5px; text-decoration:none; }
 </style>
 </head>
+<body class="bg-light">
+<div class="checkout-container">
+<h2>Checkout (<?php echo $cart_count; ?> items)</h2>
 
-<body>
-
-<div class="container">
-
-<h2>Checkout</h2>
-
-<?php
-if($success!=""){
-echo "<div class='success'>$success</div>";
-}
-?>
-
-<table>
-
-<tr>
-<th>Product</th>
-<th>Price</th>
-</tr>
-
-<?php
-
-$total = 0;
-
-if(!empty($_SESSION['cart'])){
-
-foreach($_SESSION['cart'] as $item){
-
-$total += $item['price'];
-
-echo "<tr>";
-echo "<td>".$item['name']."</td>";
-echo "<td>₹".$item['price']."</td>";
-echo "</tr>";
-
-}
-
-}else{
-
-echo "<tr><td colspan='2'  >Cart is empty</td></tr>";
-
-}
-?>
-
-</table>
-
-<div class="total">
-Total Price: ₹<?php echo $total; ?>
+<?php if($cart_count>0): ?>
+<?php foreach($cart as $item): ?>
+<div class="item">
+<img src="images/<?php echo htmlspecialchars($item['image']); ?>">
+<div>
+<h5><?php echo htmlspecialchars($item['name']); ?></h5>
+<p>₹<?php echo number_format($item['price'],2); ?> x <?php echo $item['quantity']; ?> = ₹<?php echo number_format($item['price']*$item['quantity'],2); ?></p>
 </div>
-
-<form method="POST" style="margin-top:20px;text-align:right;">
-<button type="submit" name="place_order">Place Order</button>
-</form>
-
 </div>
-
+<?php endforeach; ?>
+<div class="total">Total: ₹<?php echo number_format($total,2); ?></div>
+<a href="address.php" class="btn btn-continue mt-3">Proceed to Shipping</a>
+<?php else: ?>
+<p>Your cart is empty!</p>
+<?php endif; ?>
+</div>
 </body>
 </html>
