@@ -1,171 +1,207 @@
 <?php
 session_start();
-include("../db.php"); // Make sure path is correct
+include("../db.php");
 include("admin_navbar.php");
-// Check Admin Session
+
 if(!isset($_SESSION['admin'])){
     header("Location: admin_login.php");
     exit();
 }
 
-// Handle form submission
-if(isset($_POST['add_product'])) {
-    $name = trim($_POST['name']);
-    $price = trim($_POST['price']);
-    $category = trim($_POST['category']);
-    $brand = trim($_POST['brand']);
-    $description = trim($_POST['description']);
+if(isset($_POST['add_product'])){
 
-    // Handle image upload
-    if(isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
-        $image_name = time() . '_' . basename($_FILES['image']['name']);
-        $image_tmp = $_FILES['image']['tmp_name'];
-        $image_folder = "../images/" . $image_name;
+$name = $_POST['name'];
+$price = $_POST['price'];
+$category = $_POST['category'];
+$brand = $_POST['brand'];
+$description = $_POST['description'];
 
-        // Make sure images folder exists
-        if(!is_dir("../images")) {
-            mkdir("../images", 0755, true);
-        }
+/* MAIN IMAGE */
 
-        if(move_uploaded_file($image_tmp, $image_folder)) {
-            // Prepare SQL to prevent injection
-            $stmt = $conn->prepare("INSERT INTO products (name, price, image, category, brand, description) VALUES (?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("sdssss", $name, $price, $image_name, $category, $brand, $description);
+$image = time().'_'.$_FILES['image']['name'];
+$tmp = $_FILES['image']['tmp_name'];
 
-            if($stmt->execute()) {
-                $success = "Product added successfully!";
-            } else {
-                $error = "Database error: " . $stmt->error;
-            }
+move_uploaded_file($tmp,"../images/".$image);
 
-            $stmt->close();
-        } else {
-            $error = "Failed to upload image.";
-        }
-    } else {
-        $error = "Please select an image.";
-    }
+/* INSERT PRODUCT */
+
+$stmt=$conn->prepare("INSERT INTO products(name,price,image,category,brand,description) VALUES (?,?,?,?,?,?)");
+$stmt->bind_param("sdssss",$name,$price,$image,$category,$brand,$description);
+$stmt->execute();
+
+$product_id=$stmt->insert_id;
+
+/* MULTIPLE IMAGES */
+
+if(!empty($_FILES['images']['name'][0])){
+
+foreach($_FILES['images']['name'] as $key=>$img){
+
+$image_name=time().'_'.$img;
+$tmp_name=$_FILES['images']['tmp_name'][$key];
+
+move_uploaded_file($tmp_name,"../images/".$image_name);
+
+$stmt2=$conn->prepare("INSERT INTO product_images(product_id,image_name) VALUES (?,?)");
+$stmt2->bind_param("is",$product_id,$image_name);
+$stmt2->execute();
+
+}
+
+}
+
+$success="Product Added Successfully";
+
 }
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html>
+
 <head>
-    <meta charset="UTF-8">
-    <title>Add Product - Admin Panel</title>
-    <link rel="stylesheet" href="../css/style.css"> <!-- optional -->
-</head>
+
+<title>Add Product</title>
+
 <style>
-body {
-    font-family: Arial, sans-serif;
-    background-color: #f7f7f7;
-    margin: 0;
-    padding: 0;
+
+body{
+font-family:Arial;
+background:#f4f6f9;
+margin:0;
 }
 
-h1 {
-    text-align: center;
-    color: #333;
-    margin-top: 30px;
+/* container */
+
+.container{
+max-width:550px;
+margin:50px auto;
+background:white;
+padding:30px;
+border-radius:10px;
+box-shadow:0 5px 20px rgba(0,0,0,0.1);
 }
 
-form {
-    background-color: #fff;
-    max-width: 500px;
-    margin: 40px auto;
-    padding: 30px;
-    border-radius: 10px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+h2{
+text-align:center;
+margin-bottom:20px;
 }
 
-label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: bold;
-    color: #555;
+/* form */
+
+label{
+font-weight:bold;
+display:block;
+margin-bottom:5px;
 }
 
-input[type="text"],
-input[type="number"],
-input[type="file"],
-textarea {
-    width: 100%;
-    padding: 10px 12px;
-    margin-bottom: 20px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    box-sizing: border-box;
-    font-size: 14px;
-    transition: border-color 0.3s;
+input,textarea{
+width:100%;
+padding:10px;
+margin-bottom:15px;
+border:1px solid #ccc;
+border-radius:6px;
+font-size:14px;
 }
 
-input[type="text"]:focus,
-input[type="number"]:focus,
-textarea:focus,
-input[type="file"]:focus {
-    border-color: #007bff;
-    outline: none;
+textarea{
+resize:none;
+height:100px;
 }
 
-textarea {
-    resize: vertical;
-    min-height: 100px;
+/* file input */
+
+.file-box{
+background:#f9f9f9;
+padding:10px;
+border:1px dashed #ccc;
+border-radius:6px;
 }
 
-button {
-    background-color: #007bff;
-    color: #fff;
-    padding: 12px 20px;
-    border: none;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s;
+/* button */
+
+button{
+width:100%;
+background:#1f7a3f;
+color:white;
+border:none;
+padding:12px;
+font-size:16px;
+border-radius:6px;
+cursor:pointer;
 }
 
-button:hover {
-    background-color: #0056b3;
+button:hover{
+background:#166532;
 }
 
-p {
-    text-align: center;
-    font-size: 14px;
+/* message */
+
+.success{
+background:#d4edda;
+color:#155724;
+padding:10px;
+border-radius:5px;
+margin-bottom:15px;
 }
 
-p[style*="green"] {
-    color: green;
+.error{
+background:#f8d7da;
+color:#721c24;
+padding:10px;
+border-radius:5px;
+margin-bottom:15px;
 }
 
-p[style*="red"] {
-    color: red;
-}
 </style>
+
+</head>
+
 <body>
-    <h1>Add Product</h1>
 
-    <?php if(isset($success)) echo "<p style='color:green;'>$success</p>"; ?>
-    <?php if(isset($error)) echo "<p style='color:red;'>$error</p>"; ?>
+<div class="container">
 
-    <form method="POST" enctype="multipart/form-data">
-        <label>Product Name:</label><br>
-        <input type="text" name="name" required><br><br>
+<h2>Add Product</h2>
 
-        <label>Price:</label><br>
-        <input type="number" name="price" step="0.01" required><br><br>
+<?php if(isset($success)){ ?>
 
-        <label>Category:</label><br>
-        <input type="text" name="category"><br><br>
+<div class="success"><?php echo $success; ?></div>
 
-        <label>Brand:</label><br>
-        <input type="text" name="brand"><br><br>
+<?php } ?>
 
-        <label>Description:</label><br>
-        <textarea name="description"></textarea><br><br>
+<form method="POST" enctype="multipart/form-data">
 
-        <label>Product Image:</label><br>
-        <input type="file" name="image" accept="image/*" required><br><br>
+<label>Product Name</label>
+<input type="text" name="name" required>
 
-        <button type="submit" name="add_product">Add Product</button>
-    </form>
+<label>Price</label>
+<input type="number" name="price" required>
+
+<label>Category</label>
+<input type="text" name="category">
+
+<label>Brand</label>
+<input type="text" name="brand">
+
+<label>Description</label>
+<textarea name="description"></textarea>
+
+<label>Main Image</label>
+<div class="file-box">
+<input type="file" name="image" required>
+</div>
+
+<label>Extra Images</label>
+<div class="file-box">
+<input type="file" name="images[]" multiple>
+</div>
+
+<button type="submit" name="add_product">
+Add Product
+</button>
+
+</form>
+
+</div>
+
 </body>
 </html>

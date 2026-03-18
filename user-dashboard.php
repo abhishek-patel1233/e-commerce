@@ -83,9 +83,11 @@ border-radius:6px;
 <a href="user-dashboard.php">Dashboard</a>
 <a href="profile.php">My Profile</a>
 <a href="orders.php">My Orders</a>
+
 <a href="wishlist.php">Wishlist</a>
 <a href="address.php">My Address</a>
 <a href="change-password.php">Change Password</a>
+<a href="help.php">Help / Support</a>
 <a href="logout.php">Logout</a>
 
 </div>

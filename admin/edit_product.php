@@ -3,134 +3,201 @@ session_start();
 include("../db.php");
 include("admin_navbar.php");
 
-// Check Admin Session
 if(!isset($_SESSION['admin'])){
-    header("Location: admin_login.php");
-    exit();
+header("Location: admin_login.php");
+exit();
 }
 
-if(!isset($_GET['id'])){
-    echo "No product ID provided.";
-    exit();
-}
+$product_id = $_GET['id'] ?? 0;
 
-$product_id = $_GET['id'];
+/* GET PRODUCT */
 
-// Fetch existing product data
-$sql = "SELECT * FROM products WHERE id=?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $product_id);
+$stmt=$conn->prepare("SELECT * FROM products WHERE id=?");
+$stmt->bind_param("i",$product_id);
 $stmt->execute();
-$result = $stmt->get_result();
-$product = $result->fetch_assoc();
-$stmt->close();
+$product=$stmt->get_result()->fetch_assoc();
 
 if(!$product){
-    echo "Product not found.";
-    exit();
+echo "Product not found";
+exit();
 }
 
-// Handle form submission
+/* GET EXTRA IMAGES */
+
+$images=$conn->query("SELECT * FROM product_images WHERE product_id='$product_id'");
+
+/* DELETE EXTRA IMAGE */
+
+if(isset($_GET['delete_img'])){
+
+$img_id=$_GET['delete_img'];
+
+$row=$conn->query("SELECT * FROM product_images WHERE id='$img_id'")->fetch_assoc();
+
+if($row){
+unlink("../images/".$row['image_name']);
+$conn->query("DELETE FROM product_images WHERE id='$img_id'");
+}
+
+header("Location: edit_product.php?id=$product_id");
+exit();
+
+}
+
+/* UPDATE PRODUCT */
+
 if(isset($_POST['update_product'])){
-    $name = trim($_POST['name']);
-    $price = trim($_POST['price']);
-    $category = trim($_POST['category']);
-    $brand = trim($_POST['brand']);
-    $description = trim($_POST['description']);
 
-    $image_name = $product['image']; // default old image
+$name=$_POST['name'];
+$price=$_POST['price'];
+$category=$_POST['category'];
+$brand=$_POST['brand'];
+$description=$_POST['description'];
 
-    // Check if a new image is uploaded
-    if(isset($_FILES['image']) && $_FILES['image']['error'] === 0){
-        // Delete old image
-        if($product['image'] && file_exists("../images/".$product['image'])){
-            unlink("../images/".$product['image']);
-        }
+$image_name=$product['image'];
 
-        $image_name = time() . '_' . basename($_FILES['image']['name']);
-        move_uploaded_file($_FILES['image']['tmp_name'], "../images/$image_name");
-    }
+/* MAIN IMAGE UPDATE */
 
-    // Update DB
-    $sql = "UPDATE products SET name=?, price=?, image=?, category=?, brand=?, description=? WHERE id=?";
-    $stmt = $conn->prepare($sql);
-    $stmt->bind_param("sdssssi", $name, $price, $image_name, $category, $brand, $description, $product_id);
+if(!empty($_FILES['image']['name'])){
 
-    if($stmt->execute()){
-        $stmt->close();
-        header("Location: products.php");
-        exit();
-    } else {
-        echo "Error updating product: " . $stmt->error;
-    }
+if(file_exists("../images/".$product['image'])){
+unlink("../images/".$product['image']);
 }
+
+$image_name=time().$_FILES['image']['name'];
+
+move_uploaded_file($_FILES['image']['tmp_name'],"../images/".$image_name);
+
+}
+
+/* UPDATE DB */
+
+$stmt=$conn->prepare("UPDATE products SET name=?,price=?,image=?,category=?,brand=?,description=? WHERE id=?");
+$stmt->bind_param("sdssssi",$name,$price,$image_name,$category,$brand,$description,$product_id);
+$stmt->execute();
+
+/* ADD EXTRA IMAGES */
+
+if(!empty($_FILES['images']['name'][0])){
+
+foreach($_FILES['images']['name'] as $key=>$img){
+
+$image_name=time().$img;
+
+$tmp=$_FILES['images']['tmp_name'][$key];
+
+move_uploaded_file($tmp,"../images/".$image_name);
+
+$conn->query("INSERT INTO product_images(product_id,image_name) VALUES('$product_id','$image_name')");
+
+}
+
+}
+
+header("Location: products.php");
+exit();
+
+}
+
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Edit Product</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<title>Edit Product</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+
 </head>
+
 <body>
+
 <div class="container mt-5">
-    <h2 class="mb-4 text-center">Edit Product</h2>
 
-    <div class="row justify-content-center">
-        <div class="col-md-7">
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <form method="POST" enctype="multipart/form-data">
-                        <div class="mb-3">
-                            <label class="form-label">Product Name</label>
-                            <input type="text" name="name" class="form-control" value="<?php echo $product['name']; ?>" required>
-                        </div>
+<h2>Edit Product</h2>
 
-                        <div class="mb-3">
-                            <label class="form-label">Price</label>
-                            <input type="number" name="price" step="0.01" class="form-control" value="<?php echo $product['price']; ?>" required>
-                        </div>
+<form method="POST" enctype="multipart/form-data">
 
-                        <div class="mb-3">
-                            <label class="form-label">Category</label>
-                            <input type="text" name="category" class="form-control" value="<?php echo $product['category']; ?>">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Brand</label>
-                            <input type="text" name="brand" class="form-control" value="<?php echo $product['brand']; ?>">
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Description</label>
-                            <textarea name="description" class="form-control" rows="4"><?php echo $product['description']; ?></textarea>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label">Product Image</label>
-                            <input type="file" name="image" class="form-control" accept="image/*">
-                            <?php if($product['image']): ?>
-                                <img src="../images/<?php echo $product['image']; ?>" class="img-thumbnail mt-2" width="150">
-                            <?php endif; ?>
-                        </div>
-
-                        <div class="d-grid">
-                            <button type="submit" name="update_product" class="btn btn-primary btn-lg">Update Product</button>
-                        </div>
-                    </form>
-
-                    <div class="mt-3 text-center">
-                        <a href="products.php" class="btn btn-secondary">Back to Products List</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="mb-3">
+<label>Name</label>
+<input type="text" name="name" class="form-control" value="<?php echo $product['name']; ?>">
 </div>
 
-<!-- Bootstrap 5 JS Bundle -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+<div class="mb-3">
+<label>Price</label>
+<input type="number" name="price" class="form-control" value="<?php echo $product['price']; ?>">
+</div>
+
+<div class="mb-3">
+<label>Category</label>
+<input type="text" name="category" class="form-control" value="<?php echo $product['category']; ?>">
+</div>
+
+<div class="mb-3">
+<label>Brand</label>
+<input type="text" name="brand" class="form-control" value="<?php echo $product['brand']; ?>">
+</div>
+
+<div class="mb-3">
+<label>Description</label>
+<textarea name="description" class="form-control"><?php echo $product['description']; ?></textarea>
+</div>
+
+<div class="mb-3">
+<label>Main Image</label><br>
+
+<img src="../images/<?php echo $product['image']; ?>" width="120"><br><br>
+
+<input type="file" name="image" class="form-control">
+</div>
+
+<div class="mb-3">
+<label>Add More Images</label>
+<input type="file" name="images[]" class="form-control" multiple>
+</div>
+
+<h5>Extra Images</h5>
+
+<div class="row">
+
+<?php while($img=$images->fetch_assoc()){ ?>
+
+<div class="col-md-2 text-center">
+
+<img src="../images/<?php echo $img['image_name']; ?>" class="img-thumbnail">
+
+<br>
+
+<a href="edit_product.php?id=<?php echo $product_id ?>&delete_img=<?php echo $img['id']; ?>" class="btn btn-danger btn-sm mt-1">
+
+Delete
+
+</a>
+
+</div>
+
+<?php } ?>
+
+</div>
+
+<br>
+
+<button type="submit" name="update_product" class="btn btn-success">
+
+Update Product
+
+</button>
+
+<a href="products.php" class="btn btn-secondary">
+
+Back
+
+</a>
+
+</form>
+
+</div>
+
 </body>
-</html>  
+</html>

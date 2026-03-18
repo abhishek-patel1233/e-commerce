@@ -1,3 +1,42 @@
+
+<?php
+session_start();
+include("db.php");
+
+if(isset($_POST['login'])){
+
+$email=$_POST['email'];
+$password=$_POST['password'];
+
+$q=mysqli_query($conn,"SELECT * FROM users 
+WHERE email='$email' AND verified=1");
+
+$data=mysqli_fetch_assoc($q);
+
+if(password_verify($password,$data['password'])){
+
+$_SESSION['user']=$email;
+
+header("Location: items-page.php");
+
+}
+else{
+echo "Login Failed";
+}
+
+}
+?>
+
+
+
+
+
+
+
+
+
+
+
 <?php
 session_start();
 include("items-page.php"); // navbar & other items included

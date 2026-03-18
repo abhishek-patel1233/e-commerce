@@ -1,172 +1,161 @@
 <?php
+
 session_start();
 include("db.php");
 
-/* Create cart session */
+$user_id = $_SESSION['user_id'] ?? 0;
+
 if(!isset($_SESSION['cart'])){
-    $_SESSION['cart'] = [];
+$_SESSION['cart']=[];
 }
 
-/* =========================
-   ADD TO CART
-========================= */
+/* ADD TO CART */
 
 if(isset($_POST['add_to_cart'])){
 
-    $product_id = intval($_POST['product_id']);
+$product_id = intval($_POST['product_id']);
 
-    $sql = "SELECT * FROM products WHERE id='$product_id'";
-    $result = mysqli_query($conn,$sql);
+$sql = mysqli_query($conn,"SELECT * FROM products WHERE id='$product_id'");
+$row = mysqli_fetch_assoc($sql);
 
-    if(mysqli_num_rows($result) > 0){
+$found=false;
 
-        $row = mysqli_fetch_assoc($result);
+foreach($_SESSION['cart'] as $key=>$item){
 
-        $found = false;
+if($item['id']==$product_id){
 
-        foreach($_SESSION['cart'] as $key => $item){
+$_SESSION['cart'][$key]['quantity']++;
+$found=true;
+break;
 
-            if($item['id'] == $product_id){
+}
+}
 
-                $_SESSION['cart'][$key]['quantity'] += 1;
+if(!$found){
 
-                $found = true;
+$_SESSION['cart'][]=[
+"id"=>$row['id'],
+"name"=>$row['name'],
+"price"=>$row['price'],
+"image"=>$row['image'],
+"quantity"=>1
+];
 
-                break;
-            }
-        }
+}
 
-        if(!$found){
+/* DATABASE SAVE */
 
-            $_SESSION['cart'][] = [
+if($user_id){
 
-                "id" => $row['id'],
-                "name" => $row['name'],
-                "price" => $row['price'],
-                "image" => $row['image'],
-                "quantity" => 1
+$check=mysqli_query($conn,"SELECT * FROM cart WHERE user_id='$user_id' AND product_id='$product_id'");
 
-            ];
-        }
+if(mysqli_num_rows($check)>0){
 
-        /* Optional database cart */
+mysqli_query($conn,"UPDATE cart SET quantity=quantity+1 WHERE user_id='$user_id' AND product_id='$product_id'");
 
-        $check = mysqli_query($conn,"SELECT * FROM cart WHERE product_id='$product_id'");
+}else{
 
-        if(mysqli_num_rows($check) > 0){
+mysqli_query($conn,"INSERT INTO cart(user_id,product_id,name,price,image,quantity)
+VALUES('$user_id','$product_id','".$row['name']."','".$row['price']."','".$row['image']."',1)");
 
-            mysqli_query($conn,"UPDATE cart SET quantity = quantity + 1 WHERE product_id='$product_id'");
+}
 
-        }else{
+}
 
-            mysqli_query($conn,"INSERT INTO cart (product_id,name,price,image,quantity)
-            VALUES ('$product_id','".$row['name']."','".$row['price']."','".$row['image']."',1)");
-
-        }
-    }
-
-    header("Location: cart.php");
-    exit();
+header("Location: cart.php");
+exit();
 }
 
 
-/* =========================
-   REMOVE ITEM
-========================= */
+/* REMOVE ITEM */
 
 if(isset($_GET['remove'])){
 
-    $index = $_GET['remove'];
+$index=$_GET['remove'];
+$product_id=$_SESSION['cart'][$index]['id'];
 
-    $product_id = $_SESSION['cart'][$index]['id'];
+if($user_id){
+mysqli_query($conn,"DELETE FROM cart WHERE user_id='$user_id' AND product_id='$product_id'");
+}
 
-    mysqli_query($conn,"DELETE FROM cart WHERE product_id='$product_id'");
+unset($_SESSION['cart'][$index]);
+$_SESSION['cart']=array_values($_SESSION['cart']);
 
-    unset($_SESSION['cart'][$index]);
-
-    $_SESSION['cart'] = array_values($_SESSION['cart']);
-
-    header("Location: cart.php");
-    exit();
+header("Location: cart.php");
+exit();
 }
 
 
-/* =========================
-   INCREASE QUANTITY
-========================= */
+/* INCREASE */
 
 if(isset($_GET['increase'])){
 
-    $index = $_GET['increase'];
+$index=$_GET['increase'];
+$_SESSION['cart'][$index]['quantity']++;
 
-    $_SESSION['cart'][$index]['quantity'] += 1;
+$product_id=$_SESSION['cart'][$index]['id'];
 
-    $product_id = $_SESSION['cart'][$index]['id'];
+if($user_id){
+mysqli_query($conn,"UPDATE cart SET quantity=quantity+1 WHERE user_id='$user_id' AND product_id='$product_id'");
+}
 
-    mysqli_query($conn,"UPDATE cart SET quantity = quantity + 1 WHERE product_id='$product_id'");
-
-    header("Location: cart.php");
-    exit();
+header("Location: cart.php");
+exit();
 }
 
 
-/* =========================
-   DECREASE QUANTITY
-========================= */
+/* DECREASE */
 
 if(isset($_GET['decrease'])){
 
-    $index = $_GET['decrease'];
+$index=$_GET['decrease'];
+$product_id=$_SESSION['cart'][$index]['id'];
 
-    if($_SESSION['cart'][$index]['quantity'] > 1){
+if($_SESSION['cart'][$index]['quantity']>1){
 
-        $_SESSION['cart'][$index]['quantity'] -= 1;
+$_SESSION['cart'][$index]['quantity']--;
 
-        $product_id = $_SESSION['cart'][$index]['id'];
+if($user_id){
+mysqli_query($conn,"UPDATE cart SET quantity=quantity-1 WHERE user_id='$user_id' AND product_id='$product_id'");
+}
 
-        mysqli_query($conn,"UPDATE cart SET quantity = quantity - 1 WHERE product_id='$product_id'");
+}else{
 
-    }else{
+unset($_SESSION['cart'][$index]);
+$_SESSION['cart']=array_values($_SESSION['cart']);
 
-        $product_id = $_SESSION['cart'][$index]['id'];
+if($user_id){
+mysqli_query($conn,"DELETE FROM cart WHERE user_id='$user_id' AND product_id='$product_id'");
+}
 
-        mysqli_query($conn,"DELETE FROM cart WHERE product_id='$product_id'");
+}
 
-        unset($_SESSION['cart'][$index]);
-
-        $_SESSION['cart'] = array_values($_SESSION['cart']);
-    }
-
-    header("Location: cart.php");
-    exit();
+header("Location: cart.php");
+exit();
 }
 
 
-/* =========================
-   TOTAL ITEMS & PRICE
-========================= */
+/* TOTAL */
 
-$cart_count = 0;
-$total = 0;
+$cart_count=0;
+$total=0;
 
 foreach($_SESSION['cart'] as $item){
 
-    $cart_count += $item['quantity'];
+$cart_count += $item['quantity'];
 
-    $total += $item['price'] * $item['quantity'];
+$discount_price = $item['price'] - ($item['price'] * 15 / 100);
+$total += $discount_price * $item['quantity'];
+
 }
 
 include("navbar.php");
-
 ?>
 
 <!DOCTYPE html>
 <html>
 
 <head>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Cart</title>
 
 <style>
@@ -174,71 +163,41 @@ include("navbar.php");
 body{
 font-family:Arial;
 background:#f4f4f4;
-margin:0;
 }
-
-/* CART TABLE */
 
 table{
 width:80%;
 margin:auto;
-border-collapse:collapse;
 background:white;
+border-collapse:collapse;
 }
 
 th,td{
 padding:15px;
-text-align:center;
 border-bottom:1px solid #ddd;
-font-size:18px;
-}
-
-th{
-background:#222;
-color:white;
+text-align:center;
 }
 
 img{
 width:80px;
 }
 
-/* BUTTONS */
+.btn{
+padding:6px 10px;
+background:#ddd;
+text-decoration:none;
+}
 
-.remove-btn{
+.remove{
 background:red;
 color:white;
-padding:8px 12px;
-text-decoration:none;
-border-radius:5px;
 }
 
-.buy-btn{
+.checkout{
 background:green;
 color:white;
-padding:8px 12px;
+padding:10px 20px;
 text-decoration:none;
-border-radius:5px;
-}
-
-.quantity a{
-padding:4px 8px;
-background:#ddd;
-border-radius:3px;
-text-decoration:none;
-margin:0 5px;
-}
-
-/* TOTAL BOX */
-
-.total-box{
-text-align:center;
-margin-top:20px;
-background:white;
-padding:15px;
-border-radius:8px;
-width:80%;
-margin-left:auto;
-margin-right:auto;
 }
 
 </style>
@@ -247,48 +206,58 @@ margin-right:auto;
 
 <body>
 
-<h2 style="text-align:center;margin:20px 0;">
-🛒 Your Cart (<?php echo $cart_count; ?> items)
+<h2 style="text-align:center">
+Cart (<?php echo $cart_count; ?> items)
 </h2>
 
 <table>
 
 <tr>
 <th>Image</th>
-<th>Product</th>
+<th>Name</th>
 <th>Price</th>
 <th>Quantity</th>
 <th>Remove</th>
-<th>Buy</th>
 </tr>
 
 <?php
 
 if(!empty($_SESSION['cart'])){
 
-foreach($_SESSION['cart'] as $index => $item){
+foreach($_SESSION['cart'] as $index=>$item){
+
+$op = $item['price'];
+$dp = $op - ($op * 15 / 100);
 
 echo "<tr>";
 
-echo "<td>
-<a href='product_detail.php?id=".$item['id']."'>
-<img src='images/".$item['image']."'>
-</a>
-</td>";
+echo "<td><img src='images/".$item['image']."'></td>";
 
 echo "<td>".$item['name']."</td>";
 
-echo "<td>₹".$item['price']."</td>";
-
-echo "<td class='quantity'>
-<a href='cart.php?decrease=".$index."'>-</a>
-<span>".$item['quantity']."</span>
-<a href='cart.php?increase=".$index."'>+</a>
+echo "<td>
+<span style='text-decoration:line-through;color:gray;font-size:13px;'>₹".$op."</span><br>
+<span style='color:green;font-weight:bold;'>₹".round($dp)."</span>
+<br><span style='color:red;font-size:12px;'>(15% OFF)</span>
 </td>";
 
-echo "<td><a class='remove-btn' href='cart.php?remove=".$index."'>Remove</a></td>";
+echo "<td>
 
-echo "<td><a class='buy-btn' href='checkout.php'>Buy</a></td>";
+<a class='btn' href='cart.php?decrease=".$index."'>-</a>
+
+".$item['quantity']."
+
+<a class='btn' href='cart.php?increase=".$index."'>+</a>
+
+</td>";
+
+echo "<td>
+
+<a class='remove btn' href='cart.php?remove=".$index."'>
+Remove
+</a>
+
+</td>";
 
 echo "</tr>";
 
@@ -296,7 +265,7 @@ echo "</tr>";
 
 }else{
 
-echo "<tr><td colspan='6'>Cart Empty</td></tr>";
+echo "<tr><td colspan='5'>Cart Empty</td></tr>";
 
 }
 
@@ -304,15 +273,11 @@ echo "<tr><td colspan='6'>Cart Empty</td></tr>";
 
 </table>
 
-<div class="total-box">
+<div style="text-align:center;margin-top:20px;">
 
-<p style="font-size:18px;font-weight:bold;">
-Total Items: <?php echo $cart_count; ?> |
-Total Price: ₹<?php echo $total; ?>
-</p>
+<h3>Total ₹<?php echo round($total); ?> (After 15% OFF)</h3>
 
-<a href="checkout.php"
-style="background:green;color:white;padding:10px 20px;text-decoration:none;border-radius:5px;font-size:18px;">
+<a class="checkout" href="checkout.php">
 Proceed To Checkout
 </a>
 

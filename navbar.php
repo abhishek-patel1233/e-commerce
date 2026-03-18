@@ -3,6 +3,7 @@
 if(session_status() == PHP_SESSION_NONE){
     session_start();
 }
+include("db.php");
 
 $cart_count = 0;
 
@@ -10,6 +11,13 @@ if(isset($_SESSION['cart'])){
     foreach($_SESSION['cart'] as $item){
         $cart_count += $item['quantity'];
     }
+}
+$wishlist_count = 0;
+if(isset($_SESSION['user_id'])){
+    $uid = $_SESSION['user_id'];
+    $res = mysqli_query($conn,"SELECT COUNT(*) as total FROM wishlist WHERE user_id='$uid'");
+    $data = mysqli_fetch_assoc($res);
+    $wishlist_count = $data['total'];
 }
 
 ?>
@@ -191,23 +199,35 @@ color:red;
 <div class="navbar-main">
     <div class="logo">THE <span>IT</span> STORE</div>
 
-    <form class="search-container" method="GET" action="products.php">
+    <!-- <form class="search-container" method="GET" action="products.php">
         <input type="text" name="search" placeholder="Search products...">
         <button type="submit">Search</button>
-    </form>
+    </form> -->
+    <form method="GET"  class="search-container" action="products.php">
+
+<input type="text" name="search"
+placeholder="Search product..."
+value="<?php echo isset($_GET['search']) ? $_GET['search'] : ''; ?>">
+
+<button type="submit">Search</button>
+
+</form>
 
     <div class="hamburger" onclick="toggleMobileMenu()"><i class="fas fa-bars"></i></div>
 
     <div class="menu" >
         <a href="#">All Departments</a>
         <a href="items-page.php">Home</a>
-        <!-- <a href="#">Laptops & Desktops</a>
-        <a href="#">Gaming Products</a> -->
-       <a href="specials.php">Specials</a>
-       <a href="customize-pc.php">Customize your PC</a>
+     <!-- <a href="chat.php" onclick="toggleChat()">💬 support</a> -->
+          <a href="specials.php">Specials</a>
+       <a href="help.php">Help / Support</a>
+        <a href="chat.php">chat support </a>
+       
        <a href="wishlist-page.php" class="wishlist-link">
-<i class="fas fa-heart"></i> Wishlist (0)
+<a href="wishlist-page.php" class="wishlist-link">
+❤️ Wishlist (<?php echo $wishlist_count; ?>)
 </a>
+
         <div class="sec-cart">
             <!-- <a href="cart.php"> <i class="fas fa-shopping-cart"></i> 0 item(s) - ₹0.00 </a> -->
              <a href="cart.php" style="font-weight:bold; text-decoration:none;">
@@ -250,7 +270,7 @@ if(isset($_SESSION['user_id'])){
 <div class="mobile-menu" id="mobileMenu">
     <a href="#">All Departments</a>
     <a href="items-page.php">Home</a>
-    
+    <a href="help.php">Help / Support</a>
     <a href="#">Specials</a>
     <a href="customize-pc.php">Customize your PC</a>
       <a href="wishlist-page.php" class="wishlist-link">
@@ -307,7 +327,7 @@ function toggleMobileMenu() {
 </script>
 
 </body>
-</html>
+</html> 
 
 
 

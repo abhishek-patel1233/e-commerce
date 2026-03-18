@@ -16,6 +16,7 @@ padding:15px;
 display:flex;
 justify-content:space-between;
 align-items:center;
+
 }
 
 .admin-title{
@@ -44,7 +45,7 @@ border-radius:4px;
 /* Active */
 
 .admin-menu a.active{
-color:#4CAF50;
+/* color:#4CAF50; */
 /* :white; */
 }
 
@@ -72,6 +73,11 @@ Orders
 class="<?php if($current_page=='products.php') echo 'active'; ?>">
 Products
 </a>
+ 
+<a href="support.php"
+class="<?php if($current_page=='support.php') echo 'active'; ?>">
+Support Messages
+</a>
 
 <a href="users.php"
 class="<?php if($current_page=='users.php') echo 'active'; ?>">
@@ -90,4 +96,4 @@ Logout
 </div>
 
 </div>
-```
+
