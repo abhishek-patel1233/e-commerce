@@ -2,6 +2,7 @@
 session_start();
 include("db.php");
 
+
 /* Login check */
 if(!isset($_SESSION['user_id'])){
     header("Location: login.php");
